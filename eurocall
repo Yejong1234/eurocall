@@ -1,0 +1,79 @@
+//*현재의 주가 지수=S, 권리행사가격 E, 옵션의 기간 T, 주가변동 Sigma, 무위험이자율 R* by 애봉애봉
+#include<iostream>
+#include<math.h>
+using namespace std; 
+#define PI 4.0*atan(1.0)//이거 그냥 파이 아냐?
+double normcdf(double X) {//normcdf는 누적표준정규분포함수 
+	double L, K, value;
+	double const a1 = 0.31938153, a2 = -0.356563782, a3 = 1.781477937,
+		a4 = -1.821255978, a5 = 1.330274429;//얘네들은 무엇을 의미하는가.... 
+	L = fabs(X);//double 타입의 절대값을 반환
+	K = 1.0 / (1.0 + 0.2316419*L); //K는 또 뭐하는 친구인가...
+	value = 1.0 - 1.0 / sqrt(2.0*PI)*exp(-0.5*L*L)*(a1*K + a2 * K*K + a3 * pow(K, 3) + a4 * pow(K, 4) + a5 * pow(K, 5));
+	if (X < 0) {
+		value = 1.0 - value;
+	}
+	return value;
+}
+
+class eurocall
+{
+public:
+	enum enumEC{E=1,T,SIGMA,R,S};
+	eurocall(double nS, double nE, double nT, double nSigma, double nR) //생성자인가유..
+
+	{
+		m_nS = nS; m_nE = nE; m_nT = nT; m_nSigma = nSigma; m_nR = nR;
+	}
+	template<typename V>
+	void SetData(V nData, int nType);//음,, return 하는게 없나?
+	double GetEData(void) { return m_nE; }
+	double GetTData(void) { return m_nT; }
+	double GetSigmaData(void) { return m_nSigma; }
+	double GetRData(void) { return m_nR; };
+	double GetSData(void) { return m_nS; };
+	void ViewData(eurocall &obj);
+	double GetOptionPrice(double nS, double nE, double nT, double nSigma, double nR);
+
+private: 
+	double m_nE, m_nT, m_nSigma, m_nR, m_nS;
+};
+template <typename V> void eurocall::SetData(V nData, int nType)//eurocall이라는 클래스 안에 있는 SetData 함수를 더욱 각색시킬께요~
+{
+	switch (nType) {//그냥 SetData로 모든거 정리
+	case E: m_nE = nData; break;//
+	case T: m_nT = nData; break;
+	case SIGMA: m_nSigma = nData; break;
+	case R: m_nR = nData; break;
+	case S: m_nS = nData; break;
+	default: cout << "Check!!" << endl; break;
+	}
+}
+double eurocall::GetOptionPrice(double nS, double nE, double nT, double nSigma, double nR) {
+	double d1, d2, CP;
+	d1 = (log(nS / nE) + (nR + 0.5*pow(nSigma, 2))*nT) / (nSigma*sqrt(nT));
+	d2 = d1 - (nSigma*sqrt(nT));
+	CP = nS * normcdf(d1) - nE * exp(-nR * nT)*normcdf(d2);
+	return CP;//이해 완료
+}
+void eurocall::ViewData(eurocall &obj)
+{
+	cout << "S: " << obj.GetSData() << endl;
+	cout << "E: " << obj.GetEData() << endl;
+	cout << "T: " << obj.GetEData() << endl;
+	cout << "Sigma: " << obj.GetEData() << endl;
+	cout << "R: " << obj.GetEData() << endl;
+}
+int main() {
+	eurocall euro(240, 250, 2.0 / 12, 0.38, 0.06);//애초에 인스턴스 선언할 때 이렇게 하는구나.
+	double callPrice = euro.GetOptionPrice(euro.GetSData(), euro.GetEData(), euro.GetTData(), euro.GetSigmaData(), euro.GetRData());
+	euro.ViewData(euro);
+	cout << "Call Price: " << callPrice << endl;
+	cout << "************************" << endl;
+	euro.SetData(300, eurocall::S);//현재 주가지수를 300으로 바꿈
+	euro.SetData(0.1, eurocall::R);
+	callPrice = euro.GetOptionPrice(euro.GetSData(), euro.GetEData(), euro.GetTData(), euro.GetSigmaData(), euro.GetRData());
+	euro.ViewData(euro);
+	cout << "Call Price: " << callPrice << endl;
+	return 0;
+}
