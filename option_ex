@@ -1,0 +1,81 @@
+//행사가격에 따른 option 가격의 변화 by 애봉애봉
+#include<iostream>
+#include<cmath>
+#include<vector>
+#include<fstream>
+#include<iomanip>
+using namespace std;
+#define PI 4.0*atan(1.0)
+
+double normcdf(double X)
+{
+	double L, K, value;
+	double const a1 = 0.31938153, a2 = -0.356563782, a3 = 1.781477937,
+		a4 = -1.821255978, a5 = 1.330274429;
+	L = fabs(X);
+	K = 1.0 / (1.0 + 0.2316419*L);
+	value = 1.0 - 1.0 / sqrt(2.0*PI)*exp(-0.5*L*L)*(a1*K + a2 * K*K + a3 * pow(K, 3) + a4 * pow(K, 4) + a5 * pow(K, 5));
+	if (X < 0) {
+		value = 1.0 - value;
+	}
+	return value;
+}
+
+vector<double> linspace(double START, double END, int STEP) {
+	vector<double> d;
+	double h = (END - START) / (STEP - 1.0);
+	for (int i = 0; i < STEP; i++)
+		d.push_back(START + h * i);
+	return d;
+}
+//vector<double>이라는 배열을 return 하는 linspace함수. (패러미터들은 start, end step)
+
+class option_ex
+{
+public:
+	option_ex(double nS, double nE, double nT, double nSigma, double nR, int nSTEP) {
+		m_S = nS; m_E = nE; m_T = nT; m_Sigma = nSigma; m_R = nR; m_STEP = nSTEP;
+	}
+	void GetOptionPrice(int nType);
+	void WriteData(vector<double> X, vector<double> CP, int nType);
+private:
+	int m_STEP;
+	double m_Sigma, m_T, m_R, m_E, m_S;
+};
+
+void option_ex::WriteData(vector<double> X, vector<double> CP, int nType)//option_ex 클래스에 있는 WriteData 함수를 정의하겠다.
+{
+	ofstream output;
+	output.open("option_ex_S_Data.dat");
+	output << fixed << setprecision(6);
+	/*for (unsigned int i = 0; i < X.size; i++) {
+		output << setw(12) << showpoint << X[i];
+	}*/
+	output.close();
+	output.open("option_ex_CP_Data.dat", nType);
+	for (unsigned int i = 0; i < X.size(); i++) {
+		output << setw(12) << showpoint << CP[i];
+	}
+	output << endl;
+	output.close();
+}
+
+void option_ex::GetOptionPrice(int nType)//이 nType은 뭐지.... 
+{
+	vector<double> X = linspace(0.0, m_S, m_STEP), d1(X.size()), d2(X.size()), CP(X.size());//X라는 vector 배열 안에 이것들을 담아라. 
+	for (unsigned i = 0; i < X.size(); i++) {
+		d1[i] = (log(X[i] / m_E) + (m_R + 0.5*pow(m_Sigma, 2.0))*m_T) / (m_Sigma*sqrt(m_T));
+		d2[i] = d1[i] - m_Sigma * sqrt(m_T);
+		CP[i] = X[i] * normcdf(d1[i]) - m_E * exp(-m_R * m_T)*normcdf(d2[i]);
+	}
+	WriteData(X, CP, nType);
+	}
+	
+int main() {
+	option_ex ex1(400.0, 200.0, 2.0 / 12, 0.38, 0.06, 50);
+	option_ex ex2(400.0, 250.0, 2.0 / 12, 0.38, 0.06, 50);
+	option_ex ex3(400.0, 300.0, 2.0 / 12, 0.38, 0.06, 50);
+	ex1.GetOptionPrice(ios::out);
+	ex2.GetOptionPrice(ios::app);
+	ex3.GetOptionPrice(ios::app);
+}
